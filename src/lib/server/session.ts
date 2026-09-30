@@ -38,7 +38,7 @@ export function clearSessionCookie() {
   cookies().delete(COOKIE_NAME);
 }
 
-export function getSessionUser(): SessionUser | null {
+export async function getSessionUser(): Promise<SessionUser | null> {
   const value = cookies().get(COOKIE_NAME)?.value;
   if (!value) return null;
   const [payload, signature] = value.split('.');
@@ -51,11 +51,11 @@ export function getSessionUser(): SessionUser | null {
   try {
     const session = JSON.parse(Buffer.from(payload, 'base64url').toString()) as SessionUser;
     if (session.role === 'student') {
-      const student = database.prepare('SELECT id, name, class_section, roll_number FROM students WHERE id = ?').get(session.id) as { id: string; name: string; class_section: string; roll_number: string } | undefined;
+      const student = await database.prepare('SELECT id, name, class_section, roll_number FROM students WHERE id = ?').get(session.id) as { id: string; name: string; class_section: string; roll_number: string } | undefined;
       return student ? { id: student.id, name: student.name, role: 'student', collegeId: student.roll_number, classSection: student.class_section, rollNumber: student.roll_number } : null;
     }
     if (session.role === 'staff') {
-      const staff = database.prepare('SELECT id, staff_id, name, department_id FROM staff WHERE id = ?').get(session.id) as { id: string; staff_id: string; name: string; department_id: string } | undefined;
+      const staff = await database.prepare('SELECT id, staff_id, name, department_id FROM staff WHERE id = ?').get(session.id) as { id: string; staff_id: string; name: string; department_id: string } | undefined;
       return staff ? { id: staff.id, name: staff.name, role: 'staff', collegeId: staff.staff_id, staffId: staff.staff_id, departmentId: staff.department_id } : null;
     }
     if (session.role === 'admin' && session.id === 'central_admin') {

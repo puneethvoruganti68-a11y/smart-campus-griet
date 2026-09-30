@@ -16,12 +16,12 @@ export async function POST(request: NextRequest) {
 
   const identityKey = `${classSection.toLocaleLowerCase()}|${rollNumber.toLocaleLowerCase()}`;
   const now = new Date().toISOString();
-  database.prepare(`INSERT INTO students (id, name, class_section, roll_number, identity_key, created_at, updated_at)
+  await database.prepare(`INSERT INTO students (id, name, class_section, roll_number, identity_key, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(identity_key) DO UPDATE SET name = excluded.name, class_section = excluded.class_section, roll_number = excluded.roll_number, updated_at = excluded.updated_at`)
     .run(randomUUID(), name, classSection, rollNumber, identityKey, now, now);
 
-  const student = database.prepare('SELECT id, name, class_section, roll_number FROM students WHERE identity_key = ?').get(identityKey) as { id: string; name: string; class_section: string; roll_number: string };
+  const student = await database.prepare('SELECT id, name, class_section, roll_number FROM students WHERE identity_key = ?').get(identityKey) as { id: string; name: string; class_section: string; roll_number: string };
   const user = { id: student.id, name: student.name, role: 'student' as const, collegeId: student.roll_number, classSection: student.class_section, rollNumber: student.roll_number };
   setSessionCookie(user);
   return NextResponse.json({ user });

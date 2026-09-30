@@ -73,13 +73,13 @@ Respond with JSON matching this structure:
             const parsed = JSON.parse(candidateText);
             const validCategory: IssueCategory = parsed.category in CATEGORY_DEPARTMENT_MAP ? parsed.category : 'other';
             const validPriority: IssuePriority = ['low', 'medium', 'high', 'critical'].includes(parsed.priority) ? parsed.priority : 'medium';
-            const departmentId = departmentIdForCategory(validCategory);
+            const departmentId = await departmentIdForCategory(validCategory);
 
             const classification: AIClassification = {
               category: validCategory,
               categoryLabel: CATEGORY_CONFIG[validCategory]?.label || validCategory,
               priority: validPriority,
-              department: departmentName(departmentId),
+              department: await departmentName(departmentId),
               departmentId,
               summary: parsed.summary || description.slice(0, 80),
               safetyConcern: Boolean(parsed.safetyConcern),
@@ -123,13 +123,13 @@ Respond with JSON matching this structure:
     }
 
     // Deterministic backend routing: category -> department
-    const departmentId = departmentIdForCategory(category);
+    const departmentId = await departmentIdForCategory(category);
 
     const classification: AIClassification = {
       category,
       categoryLabel: CATEGORY_CONFIG[category]?.label || 'General Issue',
       priority,
-      department: departmentName(departmentId),
+      department: await departmentName(departmentId),
       departmentId,
       summary: cleanSummary(description),
       safetyConcern,

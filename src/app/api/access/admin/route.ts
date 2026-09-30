@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
   const password = typeof body?.password === 'string' ? body.password : '';
-  const admin = database.prepare('SELECT email, password_hash FROM admins WHERE id = ?').get('central_admin') as { email: string; password_hash: string } | undefined;
+  const admin = await database.prepare('SELECT email, password_hash FROM admins WHERE id = ?').get('central_admin') as { email: string; password_hash: string } | undefined;
   const configuredEmail = admin?.email || process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const passwordHash = admin?.password_hash || process.env.ADMIN_PASSWORD_HASH;
   if (!configuredEmail || !passwordHash) {

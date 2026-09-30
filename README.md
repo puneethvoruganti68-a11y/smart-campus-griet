@@ -10,7 +10,7 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Open `http://localhost:3000`. The server creates a SQLite database at `./data/smart-campus.sqlite` by default. SQLite tables start without demo issue, student, or staff records. Departments and the default category mappings are configuration rows, not sample reports.
+Open `http://localhost:3000`. Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in the server environment. The app creates its tables, indexes, and configuration rows on first connection. It does not create sample student or issue records.
 
 ## Access
 
@@ -26,13 +26,15 @@ ADMIN_PASSWORD='your-password' node -e "console.log(require('bcryptjs').hashSync
 
 Copy the resulting hash into the server-only environment setting `ADMIN_PASSWORD_HASH`, then restart the server. No admin credential is committed or preconfigured.
 
-Staff records are not invented or pre-seeded. After real IDs and names are available, configure staff rows in SQLite with the department foreign key, or use the optional one-record bootstrap variables documented in `.env.example`.
+Staff records can be configured in the hosted database using the department foreign key, or through the optional one-record bootstrap variables documented in `.env.example`.
 
 ## Persistence and Deployment
 
-The server-side API is the source of truth for students, issues, history, notifications, departments, staff, mappings, and admin configuration. Sessions use signed HTTP-only cookies. Student reports, status transitions, history, and notifications are written transactionally to SQLite.
+The server-side API is the source of truth for students, issues, history, notifications, departments, staff, mappings, and admin configuration. Sessions use signed HTTP-only cookies. Student reports, status transitions, history, and notifications are written transactionally to Turso/libSQL.
 
-SQLite is appropriate for a single persistent Node.js host. Set `DATA_DIR` to a durable mounted volume in deployment; an ephemeral/serverless filesystem will not preserve data across instance replacement. For multi-instance deployment, migrate the server data module to managed PostgreSQL before scaling out.
+Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` as server-only environment variables in deployment. Never prefix database credentials with `NEXT_PUBLIC_`. The database module initializes schema and configuration rows idempotently. The existing `better-sqlite3` implementation is retained in `src/lib/server/database.sqlite.ts` as a rollback reference.
+
+To import existing local records, back up `data/smart-campus.sqlite` including its WAL state, configure the Turso environment variables, then run `npm run db:import-sqlite -- /absolute/path/to/smart-campus.sqlite`. The import copies existing rows in foreign-key order and is safe to repeat by primary key. Verify table counts and application workflows before switching production traffic; retain the original database backup for rollback.
 
 ## Issue Workflow
 
