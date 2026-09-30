@@ -150,19 +150,19 @@ async function initialize(client: Client): Promise<void> {
     const execute: Execute = (sql, args) => transaction.execute({ sql, args });
     const db = executorFor(execute);
 
-    await db.prepare('INSERT OR IGNORE INTO ticket_sequence (id, last_value) VALUES (1, 1000)').run();
-    const addDepartment = db.prepare('INSERT OR IGNORE INTO departments (id, name, description) VALUES (?, ?, ?)');
+    await db.prepare('INSERT INTO ticket_sequence (id, last_value) VALUES (1, 1000) ON CONFLICT DO NOTHING').run();
+    const addDepartment = db.prepare('INSERT INTO departments (id, name, description) VALUES (?, ?, ?) ON CONFLICT DO NOTHING');
     for (const department of initialDepartments) await addDepartment.run(...department);
 
-    const addMapping = db.prepare('INSERT OR IGNORE INTO category_mappings (category, department_id) VALUES (?, ?)');
+    const addMapping = db.prepare('INSERT INTO category_mappings (category, department_id) VALUES (?, ?) ON CONFLICT DO NOTHING');
     for (const [category, departmentId] of Object.entries(CATEGORY_DEPARTMENT_MAP)) await addMapping.run(category, departmentId);
 
     const staffId = process.env.DEV_STAFF_ID?.trim();
     const staffName = process.env.DEV_STAFF_NAME?.trim();
     const staffDepartmentId = process.env.DEV_STAFF_DEPARTMENT_ID?.trim();
     if (staffId && staffName && staffDepartmentId && await db.prepare('SELECT 1 FROM departments WHERE id = ?').get(staffDepartmentId)) {
-      await db.prepare(`INSERT OR IGNORE INTO staff (id, staff_id, name, department_id, role, created_at)
-        VALUES (?, ?, ?, ?, 'staff', ?)`)
+      await db.prepare(`INSERT INTO staff (id, staff_id, name, department_id, role, created_at)
+        VALUES (?, ?, ?, ?, 'staff', ?) ON CONFLICT DO NOTHING`)
         .run(`staff_${staffId.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`, staffId, staffName, staffDepartmentId, new Date().toISOString());
     }
 
@@ -184,8 +184,8 @@ async function initialize(client: Client): Promise<void> {
     for (const staffMember of DEMO_STAFF) {
       const departmentExists = await db.prepare('SELECT 1 FROM departments WHERE id = ?').get(staffMember.departmentId);
       if (!departmentExists) continue;
-      await db.prepare(`INSERT OR IGNORE INTO staff (id, staff_id, name, department_id, role, created_at)
-        VALUES (?, ?, ?, ?, 'staff', ?)`)
+      await db.prepare(`INSERT INTO staff (id, staff_id, name, department_id, role, created_at)
+        VALUES (?, ?, ?, ?, 'staff', ?) ON CONFLICT DO NOTHING`)
         .run(staffMember.id, staffMember.staffId, staffMember.name, staffMember.departmentId, new Date().toISOString());
     }
 
